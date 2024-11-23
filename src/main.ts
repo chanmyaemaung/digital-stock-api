@@ -5,14 +5,16 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { HttpExceptionFilter } from '@shared/filters/http-exception.filter';
+import { ErrorInterceptor } from '@shared/interceptors/error.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn'],
   });
 
-  // Global exception filter
+  // Global exception filter and interceptor
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new ErrorInterceptor());
 
   // Security
   app.use(helmet());

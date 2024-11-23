@@ -4,6 +4,45 @@
 
 # Digital Stock API
 
+## Overview
+
+**Digital Stock API** is a robust subscription management system designed for users to access APIs based on their subscription plans. The system provides features such as user authentication, subscription management, wallet support, real-time notifications, and role-based access control.
+
+## Features
+
+### Authentication & Authorization
+
+- **JWT-based authentication**: Secure API access using JSON Web Tokens.
+- **Role-based access control (RBAC)**: Supports User, Admin, and Super Admin roles.
+- **Refresh Token mechanism**: Secure, long-term session management.
+- **Device and IP tracking**: Logs device info and IP addresses on user login.
+
+### Subscription Plans
+
+- **Basic Plan**: $5/month, 500 requests/day
+- **Premium Plan**: $15/month, 1500 requests/day
+- **Business Plan**: $25/month, 10,000 requests/day
+- **Trial Period**: 3-day free trial for new users.
+
+### Payment System
+
+- **Stripe Integration**: Supports automated payments.
+- **Manual Payment**: Admin verifies and processes manual payments.
+- **Wallet System**: Users can manage their balance and top-up their wallet.
+- **Prorated Payments**: Handles prorated costs when changing subscription plans.
+
+### Request Management
+
+- **Rate Limiting**: Requests are limited based on the user’s subscription tier.
+- **Daily Request Tracking**: Tracks user requests and resets limits daily.
+- **Automatic Limit Reset**: Resets the daily request limits at the start of each day.
+
+### Real-time Notifications
+
+- **WebSocket Notifications**: Real-time notifications for login events and subscription changes.
+- **Subscription Expiration Alerts**: Notify users when their subscription is about to expire.
+- **Payment Status Updates**: Notify users of successful/failed payments.
+
 ## Quick Start
 
 1. **Clone the repository**
@@ -94,45 +133,6 @@ docker-compose logs -f
 
 **Chan Lay**  
 Email: [mr.chenlay@gmail.com](mailto:mr.chenlay@gmail.com)
-
-## Overview
-
-**Digital Stock API** is a robust subscription management system designed for users to access APIs based on their subscription plans. The system provides features such as user authentication, subscription management, wallet support, real-time notifications, and role-based access control.
-
-## Features
-
-### Authentication & Authorization
-
-- **JWT-based authentication**: Secure API access using JSON Web Tokens.
-- **Role-based access control (RBAC)**: Supports User, Admin, and Super Admin roles.
-- **Refresh Token mechanism**: Secure, long-term session management.
-- **Device and IP tracking**: Logs device info and IP addresses on user login.
-
-### Subscription Plans
-
-- **Basic Plan**: $5/month, 500 requests/day
-- **Premium Plan**: $15/month, 1500 requests/day
-- **Business Plan**: $25/month, 10,000 requests/day
-- **Trial Period**: 3-day free trial for new users.
-
-### Payment System
-
-- **Stripe Integration**: Supports automated payments.
-- **Manual Payment**: Admin verifies and processes manual payments.
-- **Wallet System**: Users can manage their balance and top-up their wallet.
-- **Prorated Payments**: Handles prorated costs when changing subscription plans.
-
-### Request Management
-
-- **Rate Limiting**: Requests are limited based on the user’s subscription tier.
-- **Daily Request Tracking**: Tracks user requests and resets limits daily.
-- **Automatic Limit Reset**: Resets the daily request limits at the start of each day.
-
-### Real-time Notifications
-
-- **WebSocket Notifications**: Real-time notifications for login events and subscription changes.
-- **Subscription Expiration Alerts**: Notify users when their subscription is about to expire.
-- **Payment Status Updates**: Notify users of successful/failed payments.
 
 ## Tech Stack
 

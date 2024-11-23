@@ -4,15 +4,19 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { HttpExceptionFilter } from '@shared/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn'],
   });
 
+  // Global exception filter
+  app.useGlobalFilters(new HttpExceptionFilter());
+
   // Security
   app.use(helmet());
-  app.disable('x-powered-by'); // Disable X-Powered-By header
+  app.disable('x-powered-by');
 
   // Validation
   app.useGlobalPipes(new ValidationPipe());

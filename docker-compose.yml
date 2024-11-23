@@ -2,72 +2,60 @@ version: '3.8'
 
 services:
   api:
-    container_name: subscription-api
+    container_name: digital_stock_api
     build:
       context: .
       dockerfile: Dockerfile
-    command: sh -c "pnpm migration:run && pnpm start:dev"
+      target: ${NODE_ENV}
     ports:
       - "${PORT}:${PORT}"
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
+    depends_on:
+      - postgres
+      - redis
     environment:
       - NODE_ENV=${NODE_ENV}
       - DB_HOST=postgres
-      - DB_PORT=${DB_PORT}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
       - REDIS_HOST=redis
-      - REDIS_PORT=${REDIS_PORT}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRATION=${JWT_EXPIRATION}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
-      - RATE_LIMIT_TTL=${RATE_LIMIT_TTL}
-      - RATE_LIMIT_BASIC=${RATE_LIMIT_BASIC}
-      - RATE_LIMIT_PREMIUM=${RATE_LIMIT_PREMIUM}
-      - RATE_LIMIT_BUSINESS=${RATE_LIMIT_BUSINESS}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
       - app-network
 
   postgres:
-    container_name: subscription-postgres
+    container_name: digital_stock_db
     image: postgres:15-alpine
     ports:
-      - "${DB_PORT}:5432"
+      - "5432:5432"
     environment:
       - POSTGRES_USER=${DB_USERNAME}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - app-network
 
   redis:
-    container_name: subscription-redis
+    container_name: digital_stock_redis
     image: redis:7-alpine
     ports:
-      - "${REDIS_PORT}:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    networks:
+      - app-network
+
+  pgadmin:
+    container_name: digital_stock_pgadmin
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
     networks:
       - app-network
 

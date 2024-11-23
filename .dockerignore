@@ -1,11 +1,44 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies
 node_modules
 npm-debug.log
-dist
-.git
+yarn-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Environment
 .env
 .env.*
-*.md
-.gitignore
-.dockerignore
+!.env.example
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Testing
+coverage
+.nyc_output
+test
+
+# Build
+dist
+build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
 Dockerfile
-docker-compose.yml 
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+CHANGELOG.md
+docs 

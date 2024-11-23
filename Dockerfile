@@ -1,43 +1,25 @@
-FROM node:20-alpine AS builder
-
+# Base stage for both development and production
+FROM node:20-alpine AS base
 WORKDIR /usr/src/app
+RUN npm install -g pnpm
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Copy package files
-COPY package*.json pnpm-lock.yaml ./
-
-# Install dependencies
-RUN pnpm install --frozen-lockfile
-
-# Copy source code
+# Development stage
+FROM base AS development
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install
 COPY . .
+CMD ["pnpm", "start:dev"]
 
-# Build application
+# Build stage
+FROM base AS build
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install
+COPY . .
 RUN pnpm build
 
 # Production stage
-FROM node:20-alpine
-
-WORKDIR /usr/src/app
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Copy package files and built code
-COPY --from=builder /usr/src/app/package*.json ./
-COPY --from=builder /usr/src/app/pnpm-lock.yaml ./
-COPY --from=builder /usr/src/app/dist ./dist
-
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
-
-# Set environment variables
-ENV NODE_ENV=production
-
-# Expose port
-EXPOSE ${PORT}
-
-# Start application
+FROM base AS production
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod
+COPY --from=build /usr/src/app/dist ./dist
 CMD ["pnpm", "start:prod"] 

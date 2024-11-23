@@ -23,7 +23,9 @@
     "migration:generate": "pnpm typeorm migration:generate -d ./src/infrastructure/database/data-source.ts",
     "migration:run": "pnpm typeorm migration:run -d ./src/infrastructure/database/data-source.ts",
     "migration:revert": "pnpm typeorm migration:revert -d ./src/infrastructure/database/data-source.ts",
-    "seed": "ts-node -r tsconfig-paths/register -r dotenv/config src/infrastructure/database/seeds/initial-data.seed.ts"
+    "seed": "ts-node -r tsconfig-paths/register -r dotenv/config src/infrastructure/database/seeds/initial-data.seed.ts",
+    "db:drop": "ts-node -r tsconfig-paths/register -r dotenv/config ./node_modules/typeorm/cli schema:drop -d ./src/infrastructure/database/data-source.ts",
+    "db:reset": "pnpm db:drop && pnpm migration:run && pnpm seed"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^2.3.0",

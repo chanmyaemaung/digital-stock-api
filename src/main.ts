@@ -1,66 +1,29 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  // Use Helmet
-  app.use(helmet());
-
-  // Configure CSP for Swagger UI
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: [`'self'`],
-          styleSrc: [`'self'`, `'unsafe-inline'`],
-          imgSrc: [`'self'`, 'data:', 'validator.swagger.io'],
-          scriptSrc: [`'self'`, `https: 'unsafe-inline'`],
-        },
-      },
-    }),
-  );
-
-  // Enable CORS
-  app.enableCors({
-    origin: process.env.FRONTEND_URL,
-    credentials: true,
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: ['error', 'warn'],
   });
 
-  // Use WebSocket adapter
-  app.useWebSocketAdapter(new IoAdapter(app));
+  // Security
+  app.use(helmet());
+  app.disable('x-powered-by'); // Disable X-Powered-By header
 
-  // Global validation pipe
+  // Validation
   app.useGlobalPipes(new ValidationPipe());
 
-  // Swagger Setup
+  // Swagger
   const config = new DocumentBuilder()
     .setTitle('Digital Stock API')
-    .setDescription('The Digital Stock API documentation')
+    .setDescription('API documentation for Digital Stock')
     .setVersion('1.0')
-    .addTag('auth', 'Authentication endpoints')
-    .addTag('users', 'User management endpoints')
-    .addTag('subscriptions', 'Subscription management endpoints')
-    .addTag('payments', 'Payment management endpoints')
-    .addTag('admin', 'Admin management endpoints')
-    .addTag('notifications', 'Notification management endpoints')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-      },
-      'JWT-auth',
-    )
+    .addBearerAuth()
     .build();
-
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 

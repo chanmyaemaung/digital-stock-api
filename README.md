@@ -297,3 +297,158 @@ if (!canProceed) {
   throw new Error('Daily request limit exceeded');
 }
 ```
+
+## Admin Dashboard
+
+The system provides a comprehensive admin dashboard with the following features:
+
+### Dashboard Statistics
+
+```bash
+GET /api/admin/dashboard
+Authorization: Bearer <token>
+
+Response:
+{
+  "totalUsers": 100,
+  "activeSubscriptions": 80,
+  "expiringSubscriptions": 5,
+  "pendingPayments": 10,
+  "planDistribution": {
+    "basic": 30,
+    "premium": 40,
+    "business": 10
+  },
+  "revenue": {
+    "total": 5000,
+    "thisMonth": 1000
+  },
+  "userGrowth": [
+    { "date": "2024-03-01", "count": 10 },
+    { "date": "2024-03-02", "count": 15 }
+  ],
+  "revenueGrowth": [
+    { "date": "2024-03-01", "amount": 500 },
+    { "date": "2024-03-02", "amount": 700 }
+  ]
+}
+```
+
+### User Management
+
+#### List Users
+
+```bash
+GET /api/admin/users?page=1&limit=10
+Authorization: Bearer <token>
+
+Response:
+{
+  "users": [...],
+  "meta": {
+    "total": 100,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 10
+  }
+}
+```
+
+#### Update User Role
+
+```bash
+PUT /api/admin/users/:id/role
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "role": "admin"
+}
+```
+
+#### Delete User
+
+```bash
+DELETE /api/admin/users/:id
+Authorization: Bearer <token>
+```
+
+### Subscription Management
+
+#### Get Expiring Subscriptions
+
+```bash
+GET /api/admin/subscriptions/expiring?days=7
+Authorization: Bearer <token>
+```
+
+#### Update Subscription Limit
+
+```bash
+PUT /api/admin/subscriptions/:id/limit
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "requestLimit": 1000
+}
+```
+
+### Payment Management
+
+#### Get Pending Payments
+
+```bash
+GET /api/admin/payments/pending
+Authorization: Bearer <token>
+```
+
+#### Approve Manual Payment
+
+```bash
+POST /api/admin/payments/:id/approve
+Authorization: Bearer <token>
+```
+
+### Security Features
+
+- Role-based access control (RBAC)
+- Admin-only endpoints
+- JWT authentication
+- Request validation
+- Error handling
+
+### Real-time Notifications
+
+The admin dashboard receives real-time notifications for:
+
+- New manual payment requests
+- Subscription expirations
+- User role changes
+- System events
+
+### Analytics
+
+- User growth tracking
+- Revenue analytics
+- Plan distribution
+- Subscription monitoring
+- Payment tracking
+
+### Testing
+
+The admin features include comprehensive tests:
+
+- Unit tests for services
+- Integration tests for repositories
+- E2E tests for API endpoints
+- Mock implementations for external services
+
+### Error Handling
+
+All admin endpoints include proper error handling:
+
+- Input validation
+- Role verification
+- Resource existence checks
+- Proper error responses

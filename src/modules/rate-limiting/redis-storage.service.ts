@@ -1,42 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { ThrottlerStorage } from '@nestjs/throttler';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
+import { StorageRecord } from './interfaces/storage-record.interface';
 
 @Injectable()
 export class RedisStorageService implements ThrottlerStorage {
   constructor(private readonly redis: Redis) {}
 
-  async increment(
-    key: string,
-    ttl: number,
-  ): Promise<{ totalHits: number; timeToExpire: number }> {
-    const multi = this.redis.multi();
-    multi.incr(key);
-    multi.pttl(key);
+  async increment(key: string, ttl: number): Promise<StorageRecord> {
+    const totalHits = await this.redis.incr(key);
 
-    const results = await multi.exec();
-    const hits = results[0][1] as number;
-    const timeToExpire = results[1][1] as number;
-
-    if (hits === 1) {
-      await this.redis.pexpire(key, ttl);
+    if (totalHits === 1) {
+      await this.redis.expire(key, ttl);
     }
 
-    return {
-      totalHits: hits,
-      timeToExpire: timeToExpire === -1 ? ttl : timeToExpire,
-    };
-  }
-
-  async get(key: string): Promise<{ totalHits: number; timeToExpire: number }> {
-    const [hits, ttl] = await Promise.all([
-      this.redis.get(key),
-      this.redis.pttl(key),
-    ]);
+    const timeToExpire = await this.redis.ttl(key);
+    const isBlocked = await this.redis.get(`blocked:${key}`);
+    const timeToBlockExpire = isBlocked
+      ? await this.redis.ttl(`blocked:${key}`)
+      : 0;
 
     return {
-      totalHits: hits ? parseInt(hits, 10) : 0,
-      timeToExpire: ttl,
+      totalHits,
+      timeToExpire,
+      isBlocked: !!isBlocked,
+      timeToBlockExpire,
     };
   }
 

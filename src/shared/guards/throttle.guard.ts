@@ -1,5 +1,5 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModuleOptions } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { ThrottlerStorage } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
@@ -8,42 +8,34 @@ import { Reflector } from '@nestjs/core';
 export class CustomThrottlerGuard extends ThrottlerGuard {
   constructor(
     private readonly configService: ConfigService,
-    storageService: ThrottlerStorage,
+    throttlerStorage: ThrottlerStorage,
     reflector: Reflector,
   ) {
-    super(
-      {
-        throttlers: [
-          {
-            ttl: configService.get('RATE_LIMIT_TTL', 60),
-            limit: configService.get('RATE_LIMIT_BASIC', 10),
-          },
-        ],
-      },
-      storageService,
-      reflector,
-    );
+    const options: ThrottlerModuleOptions = {
+      throttlers: [
+        {
+          ttl: 60,
+          limit: 10,
+        },
+      ],
+      storage: throttlerStorage,
+    };
+    super(options, throttlerStorage, reflector);
   }
 
-  protected async getTracker(req: Record<string, any>): Promise<string> {
-    return req.user?.id ? `user-${req.user.id}` : `ip-${req.ip}`;
-  }
-
-  protected getLimit(context: ExecutionContext): number {
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-
+  protected async getLimit(context: ExecutionContext): Promise<number> {
+    const user = context.switchToHttp().getRequest().user;
     if (!user) {
-      return this.configService.get('RATE_LIMIT_BASIC', 10);
+      return this.configService.get<number>('RATE_LIMIT_BASIC', 500);
     }
 
     switch (user.subscription?.plan?.name?.toLowerCase()) {
       case 'premium':
-        return this.configService.get('RATE_LIMIT_PREMIUM', 1500);
+        return this.configService.get<number>('RATE_LIMIT_PREMIUM', 1500);
       case 'business':
-        return this.configService.get('RATE_LIMIT_BUSINESS', 10000);
+        return this.configService.get<number>('RATE_LIMIT_BUSINESS', 10000);
       default:
-        return this.configService.get('RATE_LIMIT_BASIC', 500);
+        return this.configService.get<number>('RATE_LIMIT_BASIC', 500);
     }
   }
 }

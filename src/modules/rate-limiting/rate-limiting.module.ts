@@ -1,49 +1,45 @@
 import { Module } from '@nestjs/common';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
 import { RedisStorageService } from './redis-storage.service';
+import { CustomThrottlerGuard } from '@shared/guards/throttle.guard';
+import { Redis } from 'ioredis';
 
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (config: ConfigService) => {
-        const redis = new Redis({
-          host: config.get('REDIS_HOST'),
-          port: config.get('REDIS_PORT'),
-          enableReadyCheck: false,
-          maxRetriesPerRequest: 0,
-        });
-
-        return {
-          throttlers: [
-            {
-              ttl: config.get('RATE_LIMIT_TTL', 60),
-              limit: config.get('RATE_LIMIT_BASIC', 10),
-            },
-          ],
-          storage: new RedisStorageService(redis),
-        };
-      },
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: config.get<number>('RATE_LIMIT_TTL', 60),
+            limit: config.get<number>('RATE_LIMIT_BASIC', 500),
+          },
+        ],
+        storage: new RedisStorageService(
+          new Redis({
+            host: config.get('REDIS_HOST'),
+            port: config.get('REDIS_PORT'),
+          }),
+        ),
+      }),
     }),
   ],
   providers: [
-    RedisStorageService,
     {
       provide: Redis,
-      useFactory: (config: ConfigService) => {
+      useFactory: (configService: ConfigService) => {
         return new Redis({
-          host: config.get('REDIS_HOST'),
-          port: config.get('REDIS_PORT'),
-          enableReadyCheck: false,
-          maxRetriesPerRequest: 0,
+          host: configService.get('REDIS_HOST'),
+          port: configService.get('REDIS_PORT'),
         });
       },
       inject: [ConfigService],
     },
+    RedisStorageService,
+    CustomThrottlerGuard,
   ],
-  exports: [ThrottlerModule, RedisStorageService],
+  exports: [RedisStorageService, CustomThrottlerGuard],
 })
 export class RateLimitingModule {}

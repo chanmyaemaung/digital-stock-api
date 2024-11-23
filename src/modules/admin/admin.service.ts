@@ -72,7 +72,7 @@ export class AdminService {
 
     await this.notificationService.createNotification(
       subscription.userId,
-      NotificationType.LIMIT_UPDATED,
+      NotificationType.PLAN_LIMIT_UPDATED,
       'Request Limit Updated',
       `Your daily request limit has been updated to ${newLimit}`,
     );

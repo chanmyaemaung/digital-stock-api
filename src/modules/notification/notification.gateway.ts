@@ -6,9 +6,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { OnEvent } from '@nestjs/event-emitter';
-import { UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
-import { Notification } from '@app/core/domain/entities/notification.entity';
+import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
@@ -22,38 +20,38 @@ export class NotificationGateway
   @WebSocketServer()
   server: Server;
 
-  private userSockets: Map<string, string[]> = new Map();
+  private readonly logger = new Logger(NotificationGateway.name);
+  private userSockets = new Map<string, string[]>();
 
-  async handleConnection(client: Socket) {
+  handleConnection(client: Socket) {
     const userId = client.handshake.query.userId as string;
     if (userId) {
-      const userSockets = this.userSockets.get(userId) || [];
-      userSockets.push(client.id);
-      this.userSockets.set(userId, userSockets);
+      const userSocketIds = this.userSockets.get(userId) || [];
+      userSocketIds.push(client.id);
+      this.userSockets.set(userId, userSocketIds);
+      this.logger.log(`Client connected: ${client.id} for user: ${userId}`);
     }
   }
 
   handleDisconnect(client: Socket) {
     const userId = client.handshake.query.userId as string;
     if (userId) {
-      const userSockets = this.userSockets.get(userId) || [];
-      const updatedSockets = userSockets.filter(
-        (socketId) => socketId !== client.id,
-      );
-      if (updatedSockets.length > 0) {
-        this.userSockets.set(userId, updatedSockets);
+      const userSocketIds = this.userSockets.get(userId) || [];
+      const updatedSocketIds = userSocketIds.filter((id) => id !== client.id);
+      if (updatedSocketIds.length > 0) {
+        this.userSockets.set(userId, updatedSocketIds);
       } else {
         this.userSockets.delete(userId);
       }
+      this.logger.log(`Client disconnected: ${client.id} for user: ${userId}`);
     }
   }
 
-  @UseGuards(JwtAuthGuard)
   @OnEvent('notification.created')
-  handleNotificationCreated(notification: Notification) {
-    const userSockets = this.userSockets.get(notification.userId);
-    if (userSockets) {
-      userSockets.forEach((socketId) => {
+  handleNotificationCreated(notification: any) {
+    const userSocketIds = this.userSockets.get(notification.userId);
+    if (userSocketIds) {
+      userSocketIds.forEach((socketId) => {
         this.server.to(socketId).emit('notification', notification);
       });
     }

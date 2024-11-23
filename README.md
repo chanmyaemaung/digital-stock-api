@@ -4,7 +4,91 @@
 
 # Digital Stock API
 
-A subscription-based API management system built with **NestJS** and **TypeScript**.
+## Quick Start
+
+1. **Clone the repository**
+
+```bash
+git clone https://github.com/yourusername/digital-stock.git
+cd digital-stock
+```
+
+2. **Install dependencies**
+
+```bash
+pnpm install
+```
+
+3. **Set up environment variables**
+
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. **Start required services**
+
+```bash
+docker-compose up -d
+```
+
+5. **Run database migrations**
+
+```bash
+pnpm migration:run
+```
+
+6. **Seed initial data**
+
+```bash
+pnpm seed
+```
+
+7. **Start the application**
+
+```bash
+# Development
+pnpm start:dev
+
+# Production
+pnpm build
+pnpm start:prod
+```
+
+## Default Credentials
+
+- **Admin User**
+  - Email: admin@example.com
+  - Password: admin123
+
+## Available Scripts
+
+- `pnpm start:dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm start:prod` - Start production server
+- `pnpm test` - Run tests
+- `pnpm db:drop` - Drop database
+- `pnpm db:reset` - Reset database (drop + migrate + seed)
+- `pnpm migration:run` - Run migrations
+- `pnpm seed` - Seed initial data
+
+## API Documentation
+
+- Swagger UI: http://localhost:8000/api
+- API Endpoints: http://localhost:8000/api-json
+
+## Docker Support
+
+```bash
+# Build and start containers
+docker-compose up -d
+
+# Stop containers
+docker-compose down
+
+# View logs
+docker-compose logs -f
+```
 
 ## Author
 

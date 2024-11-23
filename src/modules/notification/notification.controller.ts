@@ -1,55 +1,40 @@
-import { Controller, Get, Post, Param, Query, UseGuards } from '@nestjs/common';
-import { NotificationService } from './notification.service';
-import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-  ApiQuery,
-} from '@nestjs/swagger';
+  Controller,
+  Get,
+  Post,
+  Param,
+  UseGuards,
+  Request,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { NotificationService } from './notification.service';
 
-@ApiTags('notifications')
-@ApiBearerAuth()
+@ApiTags('Notifications')
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
-  @Get('user/:userId')
+  @Get()
   @ApiOperation({ summary: 'Get user notifications' })
-  @ApiResponse({ status: 200, description: 'Returns list of notifications.' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    description: 'Number of notifications to return',
-  })
-  async getUserNotifications(
-    @Param('userId') userId: string,
-    @Query('limit') limit?: number,
-  ) {
-    return this.notificationService.getUserNotifications(userId, limit);
+  @ApiResponse({ status: 200, description: 'Returns user notifications' })
+  async getUserNotifications(@Request() req) {
+    return this.notificationService.getUserNotifications(req.user.id);
   }
 
-  @Get('user/:userId/unread')
+  @Get('unread')
   @ApiOperation({ summary: 'Get unread notifications' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns list of unread notifications.',
-  })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  async getUnreadNotifications(@Param('userId') userId: string) {
-    return this.notificationService.getUnreadNotifications(userId);
+  @ApiResponse({ status: 200, description: 'Returns unread notifications' })
+  async getUnreadNotifications(@Request() req) {
+    return this.notificationService.getUnreadNotifications(req.user.id);
   }
 
-  @Post(':id/mark-as-read')
+  @Post(':id/read')
   @ApiOperation({ summary: 'Mark notification as read' })
-  @ApiResponse({ status: 200, description: 'Notification marked as read.' })
-  @ApiResponse({ status: 404, description: 'Notification not found.' })
-  @ApiParam({ name: 'id', description: 'Notification ID' })
-  async markAsRead(@Param('id') id: string) {
+  @ApiResponse({ status: 200, description: 'Notification marked as read' })
+  async markAsRead(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
     return this.notificationService.markAsRead(id);
   }
 }

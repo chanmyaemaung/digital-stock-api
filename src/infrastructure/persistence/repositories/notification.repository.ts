@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification } from '@app/core/domain/entities/notification.entity';
 import { INotificationRepository } from '@app/core/interfaces/repositories/notification.repository.interface';
-import { NotificationType } from '@app/core/domain/enums/notification-type.enum';
 
 @Injectable()
 export class NotificationRepository implements INotificationRepository {
@@ -12,19 +11,20 @@ export class NotificationRepository implements INotificationRepository {
     private readonly repository: Repository<Notification>,
   ) {}
 
+  async create(data: Partial<Notification>): Promise<Notification> {
+    const notification = this.repository.create(data);
+    return this.repository.save(notification);
+  }
+
   async findById(id: string): Promise<Notification | null> {
-    return this.repository.findOne({
-      where: { id },
-      relations: ['user'],
-    });
+    return this.repository.findOne({ where: { id } });
   }
 
   async findByUser(userId: string, limit?: number): Promise<Notification[]> {
     const query = this.repository
       .createQueryBuilder('notification')
       .where('notification.userId = :userId', { userId })
-      .orderBy('notification.createdAt', 'DESC')
-      .leftJoinAndSelect('notification.user', 'user');
+      .orderBy('notification.createdAt', 'DESC');
 
     if (limit) {
       query.take(limit);
@@ -35,14 +35,23 @@ export class NotificationRepository implements INotificationRepository {
 
   async findUnreadByUser(userId: string): Promise<Notification[]> {
     return this.repository.find({
-      where: { userId, isRead: false },
-      relations: ['user'],
-      order: { createdAt: 'DESC' },
+      where: {
+        userId,
+        isRead: false,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
     });
   }
 
-  async create(notificationData: Partial<Notification>): Promise<Notification> {
-    const notification = this.repository.create(notificationData);
+  async markAsRead(id: string): Promise<Notification> {
+    const notification = await this.findById(id);
+    if (!notification) {
+      throw new Error('Notification not found');
+    }
+
+    notification.markAsRead();
     return this.repository.save(notification);
   }
 
@@ -51,20 +60,11 @@ export class NotificationRepository implements INotificationRepository {
     return this.findById(id);
   }
 
-  async markAsRead(id: string): Promise<Notification> {
-    const notification = await this.findById(id);
-    if (notification) {
-      notification.markAsRead();
-      return this.repository.save(notification);
-    }
-    return null;
+  async delete(id: string): Promise<void> {
+    await this.repository.delete(id);
   }
 
-  async findByType(type: NotificationType): Promise<Notification[]> {
-    return this.repository.find({
-      where: { type },
-      relations: ['user'],
-      order: { createdAt: 'DESC' },
-    });
+  async deleteAllByUser(userId: string): Promise<void> {
+    await this.repository.delete({ userId });
   }
 }

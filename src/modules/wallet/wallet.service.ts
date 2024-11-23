@@ -1,41 +1,98 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { IWalletRepository } from '@app/core/interfaces/repositories/wallet.repository.interface';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Wallet } from '@app/core/domain/entities/wallet.entity';
+import { User } from '@app/core/domain/entities/user.entity';
+import { NotificationService } from '@modules/notification/notification.service';
+import { NotificationType } from '@app/core/domain/enums/notification-type.enum';
 
 @Injectable()
 export class WalletService {
   constructor(
-    @Inject('IWalletRepository')
-    private readonly walletRepository: IWalletRepository,
+    @InjectRepository(Wallet)
+    private readonly walletRepository: Repository<Wallet>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    private readonly notificationService: NotificationService,
   ) {}
 
-  async getWallet(userId: string) {
-    const wallet = await this.walletRepository.findByUser(userId);
-    if (!wallet) {
-      throw new NotFoundException('Wallet not found');
-    }
-    return wallet;
+  async getBalance(userId: string): Promise<number> {
+    const wallet = await this.findOrCreateWallet(userId);
+    return wallet.balance;
   }
 
-  async createWallet(userId: string) {
-    return this.walletRepository.create({
+  async addBalance(userId: string, amount: number): Promise<Wallet> {
+    if (amount <= 0) {
+      throw new BadRequestException('Amount must be greater than 0');
+    }
+
+    const wallet = await this.findOrCreateWallet(userId);
+    wallet.balance += amount;
+    wallet.updatedAt = new Date();
+
+    const updatedWallet = await this.walletRepository.save(wallet);
+
+    // Send notification
+    await this.notificationService.createNotification(
       userId,
-      balance: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+      NotificationType.WALLET_CREDITED,
+      'Wallet Credited',
+      `Your wallet has been credited with $${amount}`,
+    );
+
+    return updatedWallet;
   }
 
-  async addBalance(userId: string, amount: number) {
-    const wallet = await this.getWallet(userId);
-    wallet.addBalance(amount);
-    return this.walletRepository.update(wallet.id, wallet);
-  }
-
-  async deductBalance(userId: string, amount: number) {
-    const wallet = await this.getWallet(userId);
-    if (!wallet.deductBalance(amount)) {
-      throw new Error('Insufficient balance');
+  async deductBalance(userId: string, amount: number): Promise<Wallet> {
+    if (amount <= 0) {
+      throw new BadRequestException('Amount must be greater than 0');
     }
-    return this.walletRepository.update(wallet.id, wallet);
+
+    const wallet = await this.findOrCreateWallet(userId);
+    if (wallet.balance < amount) {
+      throw new BadRequestException('Insufficient balance');
+    }
+
+    wallet.balance -= amount;
+    wallet.updatedAt = new Date();
+
+    const updatedWallet = await this.walletRepository.save(wallet);
+
+    // Send notification
+    await this.notificationService.createNotification(
+      userId,
+      NotificationType.WALLET_DEBITED,
+      'Wallet Debited',
+      `Your wallet has been debited with $${amount}`,
+    );
+
+    return updatedWallet;
+  }
+
+  private async findOrCreateWallet(userId: string): Promise<Wallet> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    let wallet = await this.walletRepository.findOne({
+      where: { userId },
+    });
+
+    if (!wallet) {
+      wallet = this.walletRepository.create({
+        user,
+        balance: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await this.walletRepository.save(wallet);
+    }
+
+    return wallet;
   }
 }

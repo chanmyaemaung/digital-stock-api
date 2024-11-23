@@ -75,7 +75,7 @@ export class NotificationService {
   async notifyPaymentSuccess(userId: string, amount: number) {
     return this.createNotification(
       userId,
-      NotificationType.PAYMENT_SUCCESS,
+      NotificationType.PAYMENT_SUCCESSFUL,
       'Payment Successful',
       `Your payment of $${amount} has been processed successfully.`,
       { amount },

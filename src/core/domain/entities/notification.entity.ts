@@ -22,16 +22,12 @@ export class Notification {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @ApiProperty({
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'The ID of the user who owns this notification',
-  })
   @Column()
   userId: string;
 
   @ApiProperty({
     enum: NotificationType,
-    example: NotificationType.PAYMENT_SUCCESS,
+    example: NotificationType.PAYMENT_SUCCESSFUL,
     description: 'The type of notification',
   })
   @Column({
@@ -66,20 +62,12 @@ export class Notification {
     description: 'Additional metadata for the notification',
     required: false,
   })
-  @Column('json', { nullable: true })
+  @Column('jsonb', { nullable: true })
   metadata?: Record<string, any>;
 
-  @ApiProperty({
-    example: '2024-01-01T00:00:00Z',
-    description: 'Notification creation timestamp',
-  })
   @Column()
   createdAt: Date;
 
-  @ApiProperty({
-    example: '2024-01-01T00:00:00Z',
-    description: 'Notification last update timestamp',
-  })
   @Column()
   updatedAt: Date;
 

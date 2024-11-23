@@ -1,17 +1,19 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Request,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { SubscriptionService } from './subscription.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-} from '@nestjs/swagger';
 
-@ApiTags('subscriptions')
-@ApiBearerAuth()
+@ApiTags('Subscriptions')
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
 export class SubscriptionController {
@@ -21,20 +23,31 @@ export class SubscriptionController {
   @ApiOperation({ summary: 'Create a new subscription' })
   @ApiResponse({
     status: 201,
-    description: 'Subscription created successfully.',
+    description: 'Subscription created successfully',
   })
-  @ApiResponse({ status: 400, description: 'Bad request.' })
-  @ApiResponse({ status: 404, description: 'Plan not found.' })
-  async create(@Body() createSubscriptionDto: CreateSubscriptionDto) {
-    return this.subscriptionService.create(createSubscriptionDto);
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  async create(
+    @Request() req,
+    @Body() createSubscriptionDto: CreateSubscriptionDto,
+  ) {
+    return this.subscriptionService.create(req.user.id, createSubscriptionDto);
   }
 
-  @Get('user/:userId')
-  @ApiOperation({ summary: 'Get user subscription' })
-  @ApiResponse({ status: 200, description: 'Returns the active subscription.' })
-  @ApiResponse({ status: 404, description: 'No active subscription found.' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  async getUserSubscription(@Param('userId') userId: string) {
-    return this.subscriptionService.getUserSubscription(userId);
+  @Get('active')
+  @ApiOperation({ summary: 'Get active subscription' })
+  @ApiResponse({ status: 200, description: 'Returns active subscription' })
+  async getActiveSubscription(@Request() req) {
+    return this.subscriptionService.findActiveSubscription(req.user.id);
+  }
+
+  @Post('upgrade/:planId')
+  @ApiOperation({ summary: 'Upgrade subscription plan' })
+  @ApiResponse({ status: 200, description: 'Plan upgraded successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  async upgradePlan(
+    @Request() req,
+    @Param('planId', ParseUUIDPipe) planId: string,
+  ) {
+    return this.subscriptionService.upgradePlan(req.user.id, planId);
   }
 }

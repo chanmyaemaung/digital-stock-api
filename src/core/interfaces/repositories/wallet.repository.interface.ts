@@ -6,4 +6,5 @@ export interface IWalletRepository {
   create(wallet: Partial<Wallet>): Promise<Wallet>;
   update(id: string, data: Partial<Wallet>): Promise<Wallet>;
   updateBalance(id: string, amount: number): Promise<Wallet>;
+  getTransactionHistory(walletId: string, limit?: number): Promise<any[]>;
 }

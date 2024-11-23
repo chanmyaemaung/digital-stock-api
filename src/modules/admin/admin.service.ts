@@ -27,9 +27,22 @@ export class AdminService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async getAllUsers(page: number, limit: number) {
+  async getUsers(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
-    return this.userRepository.findAll(skip, limit);
+    const [users, total] = await Promise.all([
+      this.userRepository.find({ skip, take: limit }),
+      this.userRepository.count(),
+    ]);
+
+    return {
+      users,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async getExpiringSubscriptions(days: number) {

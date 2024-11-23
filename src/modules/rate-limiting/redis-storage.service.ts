@@ -1,34 +1,36 @@
-import { Injectable } from '@nestjs/common';
-import { ThrottlerStorage } from '@nestjs/throttler';
+import { Inject, Injectable } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { StorageRecord } from './interfaces/storage-record.interface';
 
 @Injectable()
-export class RedisStorageService implements ThrottlerStorage {
-  constructor(private readonly redis: Redis) {}
+export class RedisStorageService {
+  constructor(
+    @Inject('REDIS_CLIENT')
+    private readonly redisClient: Redis,
+  ) {}
 
-  async increment(key: string, ttl: number): Promise<StorageRecord> {
-    const totalHits = await this.redis.incr(key);
+  async increment(key: string): Promise<number> {
+    const count = await this.redisClient.incr(key);
+    return count;
+  }
 
-    if (totalHits === 1) {
-      await this.redis.expire(key, ttl);
+  async get(key: string): Promise<StorageRecord> {
+    const value = await this.redisClient.get(key);
+    if (!value) {
+      return null;
     }
+    return JSON.parse(value);
+  }
 
-    const timeToExpire = await this.redis.ttl(key);
-    const isBlocked = await this.redis.get(`blocked:${key}`);
-    const timeToBlockExpire = isBlocked
-      ? await this.redis.ttl(`blocked:${key}`)
-      : 0;
+  async set(key: string, value: StorageRecord, ttl: number): Promise<void> {
+    await this.redisClient.set(key, JSON.stringify(value), 'EX', ttl);
+  }
 
-    return {
-      totalHits,
-      timeToExpire,
-      isBlocked: !!isBlocked,
-      timeToBlockExpire,
-    };
+  async delete(key: string): Promise<void> {
+    await this.redisClient.del(key);
   }
 
   async reset(key: string): Promise<void> {
-    await this.redis.del(key);
+    await this.redisClient.set(key, '0');
   }
 }

@@ -11,6 +11,18 @@ export class UserRepository implements IUserRepository {
     private readonly repository: Repository<User>,
   ) {}
 
+  async find(options?: { skip?: number; take?: number }): Promise<User[]> {
+    return this.repository.find({
+      skip: options?.skip,
+      take: options?.take,
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async count(): Promise<number> {
+    return this.repository.count();
+  }
+
   async findById(id: string): Promise<User | null> {
     return this.repository.findOne({ where: { id } });
   }
@@ -23,11 +35,9 @@ export class UserRepository implements IUserRepository {
     return this.repository.findOne({ where: { phone } });
   }
 
-  async findAll(skip: number, limit: number): Promise<[User[], number]> {
-    return this.repository.findAndCount({
-      skip,
-      take: limit,
-      order: { createdAt: 'DESC' },
+  async findByEmailOrPhone(email: string, phone: string): Promise<User | null> {
+    return this.repository.findOne({
+      where: [{ email }, { phone }],
     });
   }
 

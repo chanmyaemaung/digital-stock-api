@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationController } from './notification.controller';
 import { NotificationService } from './notification.service';
@@ -10,9 +12,16 @@ import { NotificationRepository } from '@app/infrastructure/persistence/reposito
 @Module({
   imports: [
     TypeOrmModule.forFeature([Notification]),
-    EventEmitterModule.forRoot({
-      // Set this to false since we already have it in app.module
-      global: false,
+    EventEmitterModule.forRoot(),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get<string>('JWT_EXPIRATION', '15m'),
+        },
+      }),
+      inject: [ConfigService],
     }),
   ],
   controllers: [NotificationController],

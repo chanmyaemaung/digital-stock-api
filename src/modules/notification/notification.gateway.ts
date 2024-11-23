@@ -5,12 +5,12 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { OnEvent } from '@nestjs/event-emitter';
+import { JwtService } from '@nestjs/jwt';
 import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL,
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
   },
 })
@@ -21,39 +21,47 @@ export class NotificationGateway
   server: Server;
 
   private readonly logger = new Logger(NotificationGateway.name);
-  private userSockets = new Map<string, string[]>();
+  private userSockets: Map<string, string[]> = new Map();
 
-  handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId as string;
-    if (userId) {
+  constructor(private readonly jwtService: JwtService) {}
+
+  async handleConnection(client: Socket) {
+    try {
+      const token = client.handshake.auth.token;
+      const payload = this.jwtService.verify(token);
+      const userId = payload.sub;
+
+      // Store socket connection
       const userSocketIds = this.userSockets.get(userId) || [];
       userSocketIds.push(client.id);
       this.userSockets.set(userId, userSocketIds);
+
+      client.join(`user:${userId}`);
       this.logger.log(`Client connected: ${client.id} for user: ${userId}`);
+    } catch (error) {
+      this.logger.error('WebSocket connection error:', error);
+      client.disconnect();
     }
   }
 
   handleDisconnect(client: Socket) {
-    const userId = client.handshake.query.userId as string;
-    if (userId) {
-      const userSocketIds = this.userSockets.get(userId) || [];
-      const updatedSocketIds = userSocketIds.filter((id) => id !== client.id);
-      if (updatedSocketIds.length > 0) {
-        this.userSockets.set(userId, updatedSocketIds);
-      } else {
-        this.userSockets.delete(userId);
+    // Remove socket connection
+    for (const [userId, socketIds] of this.userSockets.entries()) {
+      const index = socketIds.indexOf(client.id);
+      if (index !== -1) {
+        socketIds.splice(index, 1);
+        if (socketIds.length === 0) {
+          this.userSockets.delete(userId);
+        } else {
+          this.userSockets.set(userId, socketIds);
+        }
+        break;
       }
-      this.logger.log(`Client disconnected: ${client.id} for user: ${userId}`);
     }
+    this.logger.log(`Client disconnected: ${client.id}`);
   }
 
-  @OnEvent('notification.created')
-  handleNotificationCreated(notification: any) {
-    const userSocketIds = this.userSockets.get(notification.userId);
-    if (userSocketIds) {
-      userSocketIds.forEach((socketId) => {
-        this.server.to(socketId).emit('notification', notification);
-      });
-    }
+  sendNotificationToUser(userId: string, notification: any) {
+    this.server.to(`user:${userId}`).emit('notification', notification);
   }
 }

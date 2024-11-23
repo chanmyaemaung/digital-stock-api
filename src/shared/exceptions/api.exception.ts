@@ -1,18 +1,13 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException } from '@nestjs/common';
+
+interface ApiExceptionResponse {
+  status: number;
+  message: string;
+  error: string;
+}
 
 export class ApiException extends HttpException {
-  constructor(
-    message: string,
-    statusCode: number = HttpStatus.INTERNAL_SERVER_ERROR,
-    error?: string,
-  ) {
-    super(
-      {
-        statusCode,
-        error: error || 'API Error',
-        message,
-      },
-      statusCode,
-    );
+  constructor(response: ApiExceptionResponse) {
+    super(response, response.status);
   }
 }

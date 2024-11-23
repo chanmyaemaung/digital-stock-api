@@ -1,6 +1,6 @@
-import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 import { Role } from '@app/core/domain/enums/role.enum';
 import { SubscriptionStatus } from '@app/core/domain/enums/subscription-status.enum';
+import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class InitialMigration1708745600000 implements MigrationInterface {
   name = 'InitialMigration1708745600000';
@@ -101,6 +101,7 @@ export class InitialMigration1708745600000 implements MigrationInterface {
           {
             name: 'features',
             type: 'jsonb',
+            default: "'{}'",
           },
           {
             name: 'is_active',

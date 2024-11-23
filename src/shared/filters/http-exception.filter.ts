@@ -1,46 +1,56 @@
 import {
-  ExceptionFilter,
-  Catch,
   ArgumentsHost,
+  Catch,
+  ExceptionFilter,
   HttpException,
-  HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { ApiException } from '../exceptions/api.exception';
 
-@Catch()
+@Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
-  catch(exception: Error, host: ArgumentsHost) {
+  catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    const status = exception.getStatus();
+    const path = ctx.getRequest().url;
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    let errorResponse = {
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: path,
+      message: 'An error occurred',
+      error: 'Internal Server Error',
+    };
+
+    if (exception instanceof ApiException) {
+      const error = exception.getResponse() as any;
+      errorResponse = {
+        ...errorResponse,
+        message: error.message || exception.message,
+        error: error.error || 'API Error',
+      };
+    } else {
+      const error = exception.getResponse() as any;
+      errorResponse = {
+        ...errorResponse,
+        message:
+          typeof error === 'string'
+            ? error
+            : error.message || exception.message,
+        error: error.error || exception.name,
+      };
+    }
 
     // Log the error
     this.logger.error(
-      `Error processing request: ${request.method} ${request.url}`,
-      exception.stack,
+      `Error processing request: ${path}`,
+      JSON.stringify(errorResponse),
     );
 
-    // Prepare error response
-    const errorResponse = {
-      statusCode: status,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      method: request.method,
-      message: exception.message || 'Internal server error',
-      ...(process.env.NODE_ENV === 'development' && {
-        stack: exception.stack,
-      }),
-    };
-
-    // Send error response
     response.status(status).json(errorResponse);
   }
 }

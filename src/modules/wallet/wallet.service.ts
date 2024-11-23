@@ -1,22 +1,22 @@
 import {
   Injectable,
+  Inject,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Wallet } from '@app/core/domain/entities/wallet.entity';
-import { User } from '@app/core/domain/entities/user.entity';
+import { IWalletRepository } from '@app/core/interfaces/repositories/wallet.repository.interface';
+import { ITransactionRepository } from '@app/core/interfaces/repositories/transaction.repository.interface';
+import { TransactionType } from '@app/core/domain/enums/transaction-type.enum';
 import { NotificationService } from '@modules/notification/notification.service';
 import { NotificationType } from '@app/core/domain/enums/notification-type.enum';
 
 @Injectable()
 export class WalletService {
   constructor(
-    @InjectRepository(Wallet)
-    private readonly walletRepository: Repository<Wallet>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    @Inject('IWalletRepository')
+    private readonly walletRepository: IWalletRepository,
+    @Inject('ITransactionRepository')
+    private readonly transactionRepository: ITransactionRepository,
     private readonly notificationService: NotificationService,
   ) {}
 
@@ -25,16 +25,22 @@ export class WalletService {
     return wallet.balance;
   }
 
-  async addBalance(userId: string, amount: number): Promise<Wallet> {
+  async addBalance(userId: string, amount: number): Promise<void> {
     if (amount <= 0) {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
     const wallet = await this.findOrCreateWallet(userId);
-    wallet.balance += amount;
-    wallet.updatedAt = new Date();
+    wallet.credit(amount);
+    await this.walletRepository.update(wallet.id, wallet);
 
-    const updatedWallet = await this.walletRepository.save(wallet);
+    // Create transaction record
+    await this.transactionRepository.create({
+      walletId: wallet.id,
+      type: TransactionType.CREDIT,
+      amount,
+      description: 'Wallet top-up',
+    });
 
     // Send notification
     await this.notificationService.createNotification(
@@ -43,24 +49,28 @@ export class WalletService {
       'Wallet Credited',
       `Your wallet has been credited with $${amount}`,
     );
-
-    return updatedWallet;
   }
 
-  async deductBalance(userId: string, amount: number): Promise<Wallet> {
+  async deductBalance(userId: string, amount: number): Promise<void> {
     if (amount <= 0) {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
     const wallet = await this.findOrCreateWallet(userId);
-    if (wallet.balance < amount) {
+    if (!wallet.hasEnoughBalance(amount)) {
       throw new BadRequestException('Insufficient balance');
     }
 
-    wallet.balance -= amount;
-    wallet.updatedAt = new Date();
+    wallet.debit(amount);
+    await this.walletRepository.update(wallet.id, wallet);
 
-    const updatedWallet = await this.walletRepository.save(wallet);
+    // Create transaction record
+    await this.transactionRepository.create({
+      walletId: wallet.id,
+      type: TransactionType.DEBIT,
+      amount,
+      description: 'Balance deduction',
+    });
 
     // Send notification
     await this.notificationService.createNotification(
@@ -69,30 +79,18 @@ export class WalletService {
       'Wallet Debited',
       `Your wallet has been debited with $${amount}`,
     );
-
-    return updatedWallet;
   }
 
-  private async findOrCreateWallet(userId: string): Promise<Wallet> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+  async getTransactionHistory(userId: string, limit?: number) {
+    const wallet = await this.findOrCreateWallet(userId);
+    return this.transactionRepository.findByWallet(wallet.id, limit);
+  }
 
-    let wallet = await this.walletRepository.findOne({
-      where: { userId },
-    });
-
+  public async findOrCreateWallet(userId: string) {
+    let wallet = await this.walletRepository.findByUser(userId);
     if (!wallet) {
-      wallet = this.walletRepository.create({
-        user,
-        balance: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      await this.walletRepository.save(wallet);
+      wallet = await this.walletRepository.create({ userId });
     }
-
     return wallet;
   }
 }

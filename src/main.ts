@@ -21,37 +21,33 @@ async function bootstrap() {
   app.disable('x-powered-by');
 
   // Validation
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
 
   // Swagger Documentation
   const config = new DocumentBuilder()
     .setTitle('Digital Stock API')
-    .setDescription(
-      `
-      API documentation for Digital Stock subscription management system.
-      
-      ## Features
-      - User Authentication & Authorization
-      - Subscription Management
-      - Wallet System
-      - Real-time Notifications
-      - Rate Limiting
-      
-      ## Authentication
-      All protected endpoints require a Bearer token.
-      Get your token by logging in through /auth/login.
-    `,
-    )
+    .setDescription('Digital Stock API Documentation')
     .setVersion('1.0')
-    .addTag('Authentication', 'User authentication endpoints')
-    .addTag('Subscriptions', 'Subscription management endpoints')
-    .addTag('Wallet', 'Wallet management endpoints')
-    .addTag('Notifications', 'Real-time notification endpoints')
     .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
+
+  // CORS
+  app.enableCors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+  });
 
   await app.listen(process.env.PORT || 3000);
 }

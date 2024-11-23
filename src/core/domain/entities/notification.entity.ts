@@ -5,20 +5,20 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import type { User } from './user.entity';
+import { User } from './user.entity';
 import { NotificationType } from '../enums/notification-type.enum';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Entity('notifications')
 export class Notification {
   @ApiProperty({
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'The unique identifier of the notification',
+    example: 'uuid',
+    description: 'Unique identifier for the notification',
   })
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne('User')
+  @ManyToOne(() => User)
   @JoinColumn({ name: 'userId' })
   user: User;
 
@@ -27,8 +27,8 @@ export class Notification {
 
   @ApiProperty({
     enum: NotificationType,
-    example: NotificationType.PAYMENT_SUCCESSFUL,
-    description: 'The type of notification',
+    example: NotificationType.WALLET_CREDITED,
+    description: 'Type of notification',
   })
   @Column({
     type: 'enum',
@@ -37,30 +37,26 @@ export class Notification {
   type: NotificationType;
 
   @ApiProperty({
-    example: 'Payment Successful',
-    description: 'The title of the notification',
+    example: 'Wallet Credited',
+    description: 'Notification title',
   })
   @Column()
   title: string;
 
   @ApiProperty({
-    example: 'Your payment of $10 has been processed successfully',
-    description: 'The message content of the notification',
+    example: 'Your wallet has been credited with $100',
+    description: 'Notification message',
   })
   @Column()
   message: string;
 
-  @ApiProperty({
-    example: false,
-    description: 'Whether the notification has been read',
-  })
+  @ApiProperty({ example: false, description: 'Read status' })
   @Column({ default: false })
   isRead: boolean;
 
   @ApiProperty({
-    example: { amount: 10, paymentId: '123' },
-    description: 'Additional metadata for the notification',
-    required: false,
+    example: { amount: 100, currency: 'USD' },
+    description: 'Additional notification metadata',
   })
   @Column('jsonb', { nullable: true })
   metadata?: Record<string, any>;
@@ -68,12 +64,8 @@ export class Notification {
   @Column()
   createdAt: Date;
 
-  @Column()
-  updatedAt: Date;
-
   // Domain methods
   public markAsRead(): void {
     this.isRead = true;
-    this.updatedAt = new Date();
   }
 }

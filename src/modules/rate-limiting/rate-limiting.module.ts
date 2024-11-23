@@ -1,38 +1,35 @@
 import { Module } from '@nestjs/common';
-import { ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { RedisStorageService } from './redis-storage.service';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { CustomThrottlerGuard } from '@shared/guards/throttle.guard';
 import { Redis } from 'ioredis';
+import { RedisStorageService } from './redis-storage.service';
 
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
+      useFactory: async (configService: ConfigService) => ({
         throttlers: [
           {
-            ttl: config.get<number>('RATE_LIMIT_TTL', 60),
-            limit: config.get<number>('RATE_LIMIT_BASIC', 500),
+            ttl: configService.get<number>('THROTTLE_TTL'),
+            limit: configService.get<number>('THROTTLE_LIMIT'),
           },
         ],
-        storage: new RedisStorageService(
-          new Redis({
-            host: config.get('REDIS_HOST'),
-            port: config.get('REDIS_PORT'),
-          }),
-        ),
       }),
+      inject: [ConfigService],
     }),
   ],
   providers: [
     {
-      provide: Redis,
+      provide: 'REDIS_CLIENT',
       useFactory: (configService: ConfigService) => {
         return new Redis({
           host: configService.get('REDIS_HOST'),
           port: configService.get('REDIS_PORT'),
+          password: configService.get('REDIS_PASSWORD'),
+          username: configService.get('REDIS_USERNAME'),
+          db: configService.get('REDIS_DB'),
         });
       },
       inject: [ConfigService],
@@ -40,6 +37,6 @@ import { Redis } from 'ioredis';
     RedisStorageService,
     CustomThrottlerGuard,
   ],
-  exports: [RedisStorageService, CustomThrottlerGuard],
+  exports: [RedisStorageService, CustomThrottlerGuard, 'REDIS_CLIENT'],
 })
 export class RateLimitingModule {}

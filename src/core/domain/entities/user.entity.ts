@@ -1,9 +1,16 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { Role } from '@app/core/domain/enums/role.enum';
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Notification } from './notification.entity';
 import { Subscription } from './subscription.entity';
 import { Wallet } from './wallet.entity';
-import { Notification } from './notification.entity';
 
 @Entity('users')
 export class User {
@@ -31,13 +38,13 @@ export class User {
   @Column()
   password: string;
 
-  @Column()
+  @Column({ name: 'ip_address', nullable: true })
   ipAddress: string;
 
-  @Column('jsonb')
-  deviceInfo: any;
+  @Column('jsonb', { name: 'device_info', nullable: true })
+  deviceInfo: Record<string, any>;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'last_login_at', type: 'timestamp', nullable: true })
   lastLoginAt: Date;
 
   @Column({
@@ -47,11 +54,10 @@ export class User {
   })
   role: Role;
 
-  // Audit fields
-  @Column()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @Column()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   // Relations
@@ -81,11 +87,14 @@ export class User {
   // Domain methods
   public updateRole(newRole: Role): void {
     this.role = newRole;
-    this.updatedAt = new Date();
   }
 
   public updatePassword(newPassword: string): void {
     this.password = newPassword;
-    this.updatedAt = new Date();
+  }
+
+  public updateDeviceInfo(deviceInfo: Record<string, any>): void {
+    this.deviceInfo = deviceInfo;
+    this.lastLoginAt = new Date();
   }
 }

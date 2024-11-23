@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { INotificationRepository } from '@app/core/interfaces/repositories/notification.repository.interface';
 import { NotificationType } from '@app/core/domain/enums/notification-type.enum';
+import { NotificationGateway } from './notification.gateway';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
@@ -8,7 +9,8 @@ export class NotificationService {
   constructor(
     @Inject('INotificationRepository')
     private readonly notificationRepository: INotificationRepository,
-    private eventEmitter: EventEmitter2,
+    private readonly notificationGateway: NotificationGateway,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createNotification(
@@ -26,11 +28,13 @@ export class NotificationService {
       metadata,
       isRead: false,
       createdAt: new Date(),
-      updatedAt: new Date(),
     });
 
     // Emit event for real-time notifications
     this.eventEmitter.emit('notification.created', notification);
+
+    // Send real-time notification via WebSocket
+    this.notificationGateway.sendNotificationToUser(userId, notification);
 
     return notification;
   }
@@ -47,38 +51,19 @@ export class NotificationService {
     return this.notificationRepository.markAsRead(id);
   }
 
-  // Utility methods for specific notification types
-  async notifySubscriptionExpiring(userId: string, daysLeft: number) {
-    return this.createNotification(
-      userId,
-      NotificationType.SUBSCRIPTION_EXPIRING,
-      'Subscription Expiring Soon',
-      `Your subscription will expire in ${daysLeft} days.`,
-      { daysLeft },
+  async markAllAsRead(userId: string) {
+    const unreadNotifications = await this.getUnreadNotifications(userId);
+    const markAsReadPromises = unreadNotifications.map((notification) =>
+      this.markAsRead(notification.id),
     );
+    return Promise.all(markAsReadPromises);
   }
 
-  async notifyRequestLimitExceeded(
-    userId: string,
-    currentCount: number,
-    limit: number,
-  ) {
-    return this.createNotification(
-      userId,
-      NotificationType.REQUEST_LIMIT_EXCEEDED,
-      'Daily Request Limit Exceeded',
-      `You've reached your daily request limit (${currentCount}/${limit}).`,
-      { currentCount, limit },
-    );
+  async deleteNotification(id: string) {
+    return this.notificationRepository.delete(id);
   }
 
-  async notifyPaymentSuccess(userId: string, amount: number) {
-    return this.createNotification(
-      userId,
-      NotificationType.PAYMENT_SUCCESSFUL,
-      'Payment Successful',
-      `Your payment of $${amount} has been processed successfully.`,
-      { amount },
-    );
+  async deleteAllByUser(userId: string) {
+    return this.notificationRepository.deleteAllByUser(userId);
   }
 }

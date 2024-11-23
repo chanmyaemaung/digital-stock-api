@@ -4,7 +4,9 @@ export interface IUserRepository {
   findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   findByPhone(phone: string): Promise<User | null>;
-  findAll(skip: number, limit: number): Promise<[User[], number]>;
+  findByEmailOrPhone(email: string, phone: string): Promise<User | null>;
+  find(options?: { skip?: number; take?: number }): Promise<User[]>;
+  count(): Promise<number>;
   create(user: Partial<User>): Promise<User>;
   update(id: string, data: Partial<User>): Promise<User>;
   delete(id: string): Promise<void>;

@@ -6,12 +6,13 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import databaseConfig from './infrastructure/config/typeorm.config';
+import redisConfig from './infrastructure/config/redis.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig],
+      load: [databaseConfig, redisConfig],
     }),
     TypeOrmModule.forRootAsync({
       useFactory: databaseConfig,

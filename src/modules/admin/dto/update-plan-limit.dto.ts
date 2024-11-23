@@ -1,13 +1,13 @@
-import { IsNumber, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber, IsPositive } from 'class-validator';
 
 export class UpdatePlanLimitDto {
   @ApiProperty({
-    description: 'The new request limit for the subscription',
     example: 1000,
+    description: 'New daily request limit',
     minimum: 1,
   })
   @IsNumber()
-  @Min(1)
-  newLimit: number;
+  @IsPositive()
+  requestLimit: number;
 }

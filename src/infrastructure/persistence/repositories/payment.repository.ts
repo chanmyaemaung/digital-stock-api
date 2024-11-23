@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Payment } from '@app/core/domain/entities/payment.entity';
-import { IPaymentRepository } from '@app/core/interfaces/repositories/payment.repository.interface';
 import { PaymentStatus } from '@app/core/domain/enums/payment-status.enum';
 import { PaymentType } from '@app/core/domain/enums/payment-type.enum';
+import { IPaymentRepository } from '@app/core/interfaces/repositories/payment.repository.interface';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Between, Repository } from 'typeorm';
 
 @Injectable()
 export class PaymentRepository implements IPaymentRepository {
@@ -57,5 +57,46 @@ export class PaymentRepository implements IPaymentRepository {
   async updateStatus(id: string, status: PaymentStatus): Promise<Payment> {
     await this.repository.update(id, { status });
     return this.findById(id);
+  }
+
+  async countByStatus(status: PaymentStatus): Promise<number> {
+    return this.repository.count({
+      where: { status },
+    });
+  }
+
+  async getRevenueGrowth(
+    startDate: Date,
+  ): Promise<Array<{ date: string; amount: number }>> {
+    const payments = await this.repository.find({
+      where: {
+        status: PaymentStatus.COMPLETED,
+        createdAt: Between(startDate, new Date()),
+      },
+      order: {
+        createdAt: 'ASC',
+      },
+    });
+
+    const dailyRevenue = payments.reduce((acc, payment) => {
+      const date = payment.createdAt.toISOString().split('T')[0];
+      acc[date] = (acc[date] || 0) + payment.amount;
+      return acc;
+    }, {});
+
+    return Object.entries(dailyRevenue).map(([date, amount]) => ({
+      date,
+      amount: amount as number,
+    }));
+  }
+
+  async findByDateRange(startDate: Date, endDate: Date): Promise<Payment[]> {
+    return this.repository.find({
+      where: {
+        createdAt: Between(startDate, endDate),
+        status: PaymentStatus.COMPLETED,
+      },
+      relations: ['user'],
+    });
   }
 }

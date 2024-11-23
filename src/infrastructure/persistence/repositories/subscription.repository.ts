@@ -85,4 +85,10 @@ export class SubscriptionRepository implements ISubscriptionRepository {
     await this.repository.update(id, { status });
     return this.findById(id);
   }
+
+  async countByStatus(status: SubscriptionStatus): Promise<number> {
+    return this.repository.count({
+      where: { status },
+    });
+  }
 }

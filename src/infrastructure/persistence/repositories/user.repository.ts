@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { User } from '@app/core/domain/entities/user.entity';
 import { IUserRepository } from '@app/core/interfaces/repositories/user.repository.interface';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Between, Repository } from 'typeorm';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
@@ -53,5 +53,29 @@ export class UserRepository implements IUserRepository {
 
   async delete(id: string): Promise<void> {
     await this.repository.delete(id);
+  }
+
+  async getUserGrowth(
+    startDate: Date,
+  ): Promise<Array<{ date: string; count: number }>> {
+    const users = await this.repository.find({
+      where: {
+        createdAt: Between(startDate, new Date()),
+      },
+      order: {
+        createdAt: 'ASC',
+      },
+    });
+
+    const dailyGrowth = users.reduce((acc, user) => {
+      const date = user.createdAt.toISOString().split('T')[0];
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(dailyGrowth).map(([date, count]) => ({
+      date,
+      count: count as number,
+    }));
   }
 }

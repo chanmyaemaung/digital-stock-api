@@ -1,32 +1,30 @@
+import { Role } from '@app/core/domain/enums/role.enum';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import {
-  Controller,
-  Get,
-  Put,
-  Post,
-  Delete,
   Body,
+  Controller,
+  Delete,
+  Get,
   Param,
+  Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AdminService } from './admin.service';
-import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
-import { RolesGuard } from '@shared/guards/roles.guard';
-import { Roles } from '@shared/decorators/roles.decorator';
-import { Role } from '@app/core/domain/enums/role.enum';
-import { UpdateUserRoleDto } from './dto/update-user-role.dto';
-import { UpdatePlanLimitDto } from './dto/update-plan-limit.dto';
 import {
-  ApiTags,
+  ApiBearerAuth,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-  ApiQuery,
-  ApiBody,
+  ApiTags,
 } from '@nestjs/swagger';
+import { Roles } from '@shared/decorators/roles.decorator';
+import { RolesGuard } from '@shared/guards/roles.guard';
+import { AdminService } from './admin.service';
+import { DashboardStatsDto } from './dto/dashboard-stats.dto';
+import { UpdatePlanLimitDto } from './dto/update-plan-limit.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
-@ApiTags('admin')
+@ApiTags('Admin')
 @ApiBearerAuth()
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -34,50 +32,44 @@ import {
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Get admin dashboard statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns dashboard statistics',
+    type: DashboardStatsDto,
+  })
+  async getDashboardStats(): Promise<DashboardStatsDto> {
+    return this.adminService.getDashboardStats();
+  }
+
   @Get('users')
-  @ApiOperation({ summary: 'Get all users' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Return all users.' })
-  async getAllUsers(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+  @ApiOperation({ summary: 'Get all users with pagination' })
+  @ApiResponse({ status: 200, description: 'Returns paginated users list' })
+  async getUsers(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
   ) {
     return this.adminService.getUsers(page, limit);
   }
 
   @Get('subscriptions/expiring')
   @ApiOperation({ summary: 'Get expiring subscriptions' })
-  @ApiQuery({
-    name: 'days',
-    required: false,
-    type: Number,
-    description: 'Days until expiration',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Return list of expiring subscriptions.',
-  })
-  async getExpiringSubscriptions(@Query('days') days = 7) {
+  @ApiResponse({ status: 200, description: 'Returns expiring subscriptions' })
+  async getExpiringSubscriptions(@Query('days') days: number = 7) {
     return this.adminService.getExpiringSubscriptions(days);
   }
 
   @Get('payments/pending')
   @ApiOperation({ summary: 'Get pending manual payments' })
-  @ApiResponse({
-    status: 200,
-    description: 'Return list of pending manual payments.',
-  })
+  @ApiResponse({ status: 200, description: 'Returns pending payments' })
   async getPendingPayments() {
     return this.adminService.getPendingManualPayments();
   }
 
   @Put('users/:id/role')
   @ApiOperation({ summary: 'Update user role' })
-  @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiBody({ type: UpdateUserRoleDto })
-  @ApiResponse({ status: 200, description: 'User role updated successfully.' })
-  @ApiResponse({ status: 404, description: 'User not found.' })
+  @ApiResponse({ status: 200, description: 'Role updated successfully' })
   async updateUserRole(
     @Param('id') userId: string,
     @Body() updateRoleDto: UpdateUserRoleDto,
@@ -87,40 +79,27 @@ export class AdminController {
 
   @Put('subscriptions/:id/limit')
   @ApiOperation({ summary: 'Update subscription request limit' })
-  @ApiParam({ name: 'id', description: 'Subscription ID' })
-  @ApiBody({ type: UpdatePlanLimitDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Subscription limit updated successfully.',
-  })
-  @ApiResponse({ status: 404, description: 'Subscription not found.' })
+  @ApiResponse({ status: 200, description: 'Limit updated successfully' })
   async updateSubscriptionLimit(
     @Param('id') subscriptionId: string,
     @Body() updateLimitDto: UpdatePlanLimitDto,
   ) {
     return this.adminService.updateSubscriptionLimit(
       subscriptionId,
-      updateLimitDto.newLimit,
+      updateLimitDto.requestLimit,
     );
   }
 
   @Post('payments/:id/approve')
   @ApiOperation({ summary: 'Approve manual payment' })
-  @ApiParam({ name: 'id', description: 'Payment ID' })
-  @ApiResponse({ status: 200, description: 'Payment approved successfully.' })
-  @ApiResponse({ status: 404, description: 'Payment not found.' })
-  @ApiResponse({ status: 400, description: 'Payment is not pending.' })
+  @ApiResponse({ status: 200, description: 'Payment approved successfully' })
   async approvePayment(@Param('id') paymentId: string) {
     return this.adminService.approveManualPayment(paymentId);
   }
 
   @Delete('users/:id')
-  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Delete user' })
-  @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiResponse({ status: 200, description: 'User deleted successfully.' })
-  @ApiResponse({ status: 404, description: 'User not found.' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Super Admin only.' })
+  @ApiResponse({ status: 200, description: 'User deleted successfully' })
   async deleteUser(@Param('id') userId: string) {
     return this.adminService.deleteUser(userId);
   }

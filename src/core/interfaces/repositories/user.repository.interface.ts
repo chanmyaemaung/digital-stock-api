@@ -10,4 +10,7 @@ export interface IUserRepository {
   create(user: Partial<User>): Promise<User>;
   update(id: string, data: Partial<User>): Promise<User>;
   delete(id: string): Promise<void>;
+  getUserGrowth(
+    startDate: Date,
+  ): Promise<Array<{ date: string; count: number }>>;
 }

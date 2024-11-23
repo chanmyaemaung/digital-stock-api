@@ -11,4 +11,5 @@ export interface ISubscriptionRepository {
   create(subscription: Partial<Subscription>): Promise<Subscription>;
   update(id: string, data: Partial<Subscription>): Promise<Subscription>;
   updateStatus(id: string, status: SubscriptionStatus): Promise<Subscription>;
+  countByStatus(status: SubscriptionStatus): Promise<number>;
 }

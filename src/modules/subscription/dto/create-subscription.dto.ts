@@ -1,22 +1,21 @@
-import { IsUUID, IsNumber, Min, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
 
 export class CreateSubscriptionDto {
   @ApiProperty({
+    description: 'Plan ID',
     example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'The ID of the plan to subscribe to',
   })
   @IsUUID()
   planId: string;
 
   @ApiProperty({
+    description: 'Subscription duration in days',
     example: 30,
-    description: 'Duration of subscription in days (30-365)',
-    minimum: 30,
-    maximum: 365,
+    default: 30,
   })
   @IsNumber()
-  @Min(30)
-  @Max(365)
-  duration: number;
+  @Min(1)
+  @IsOptional()
+  duration?: number = 30;
 }

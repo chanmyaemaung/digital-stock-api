@@ -1,9 +1,9 @@
+import { Subscription } from '@app/core/domain/entities/subscription.entity';
+import { SubscriptionStatus } from '@app/core/domain/enums/subscription-status.enum';
+import { ISubscriptionRepository } from '@app/core/interfaces/repositories/subscription.repository.interface';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThan } from 'typeorm';
-import { Subscription } from '@app/core/domain/entities/subscription.entity';
-import { ISubscriptionRepository } from '@app/core/interfaces/repositories/subscription.repository.interface';
-import { SubscriptionStatus } from '@app/core/domain/enums/subscription-status.enum';
+import { LessThan, MoreThan, Repository } from 'typeorm';
 
 @Injectable()
 export class SubscriptionRepository implements ISubscriptionRepository {
@@ -15,7 +15,7 @@ export class SubscriptionRepository implements ISubscriptionRepository {
   async findById(id: string): Promise<Subscription | null> {
     return this.repository.findOne({
       where: { id },
-      relations: ['plan', 'user'],
+      relations: ['user', 'plan'],
     });
   }
 
@@ -23,6 +23,7 @@ export class SubscriptionRepository implements ISubscriptionRepository {
     return this.repository.find({
       where: { userId },
       relations: ['plan'],
+      order: { createdAt: 'DESC' },
     });
   }
 
@@ -34,6 +35,36 @@ export class SubscriptionRepository implements ISubscriptionRepository {
         endDate: MoreThan(new Date()),
       },
       relations: ['plan'],
+    });
+  }
+
+  async findByStatus(status: SubscriptionStatus): Promise<Subscription[]> {
+    return this.repository.find({
+      where: { status },
+      relations: ['user', 'plan'],
+    });
+  }
+
+  async findExpiringSubscriptions(days: number): Promise<Subscription[]> {
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + days);
+
+    return this.repository.find({
+      where: {
+        status: SubscriptionStatus.ACTIVE,
+        endDate: LessThan(expiryDate),
+      },
+      relations: ['user', 'plan'],
+    });
+  }
+
+  async findExpired(): Promise<Subscription[]> {
+    return this.repository.find({
+      where: {
+        status: SubscriptionStatus.ACTIVE,
+        endDate: LessThan(new Date()),
+      },
+      relations: ['user', 'plan'],
     });
   }
 
@@ -53,20 +84,5 @@ export class SubscriptionRepository implements ISubscriptionRepository {
   ): Promise<Subscription> {
     await this.repository.update(id, { status });
     return this.findById(id);
-  }
-
-  async findExpiringSubscriptions(
-    daysUntilExpiration: number,
-  ): Promise<Subscription[]> {
-    const expirationDate = new Date();
-    expirationDate.setDate(expirationDate.getDate() + daysUntilExpiration);
-
-    return this.repository.find({
-      where: {
-        status: SubscriptionStatus.ACTIVE,
-        endDate: LessThanOrEqual(expirationDate),
-      },
-      relations: ['user', 'plan'],
-    });
   }
 }

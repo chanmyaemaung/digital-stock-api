@@ -11,6 +11,8 @@ export enum NotificationType {
   PLAN_UPGRADED = 'plan_upgraded',
   PLAN_DOWNGRADED = 'plan_downgraded',
   PLAN_LIMIT_UPDATED = 'plan_limit_updated',
+  DAILY_LIMIT_RESET = 'daily_limit_reset',
+  REQUEST_LIMIT_EXCEEDED = 'request_limit_exceeded',
   LOGIN_ATTEMPT = 'login_attempt',
   ACCOUNT_UPDATED = 'account_updated',
   ROLE_UPDATED = 'role_updated',

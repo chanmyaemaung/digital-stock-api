@@ -1,13 +1,15 @@
 import {
-  Entity,
   Column,
-  PrimaryGeneratedColumn,
-  ManyToOne,
+  CreateDateColumn,
+  Entity,
   JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
-import { User } from './user.entity';
-import { Plan } from './plan.entity';
 import { SubscriptionStatus } from '../enums/subscription-status.enum';
+import { Plan } from './plan.entity';
+import { User } from './user.entity';
 
 @Entity('subscriptions')
 export class Subscription {
@@ -28,10 +30,10 @@ export class Subscription {
   @Column()
   planId: string;
 
-  @Column()
+  @Column({ type: 'timestamp' })
   startDate: Date;
 
-  @Column()
+  @Column({ type: 'timestamp' })
   endDate: Date;
 
   @Column({
@@ -41,41 +43,61 @@ export class Subscription {
   })
   status: SubscriptionStatus;
 
-  @Column()
+  @Column({ type: 'jsonb', nullable: true })
+  metadata: Record<string, any>;
+
+  @Column({ type: 'int', default: 0 })
+  dailyRequestCount: number;
+
+  @CreateDateColumn()
   createdAt: Date;
 
-  @Column()
+  @UpdateDateColumn()
   updatedAt: Date;
 
-  // Domain methods
+  public isActive(): boolean {
+    return (
+      this.status === SubscriptionStatus.ACTIVE && this.endDate > new Date()
+    );
+  }
+
+  public isExpired(): boolean {
+    return this.endDate <= new Date();
+  }
+
+  public isTrialPeriod(): boolean {
+    const trialDays = 3;
+    const trialEndDate = new Date(this.startDate);
+    trialEndDate.setDate(trialEndDate.getDate() + trialDays);
+    return new Date() <= trialEndDate;
+  }
+
   public expire(): void {
     this.status = SubscriptionStatus.EXPIRED;
     this.updatedAt = new Date();
   }
 
-  public isActive(): boolean {
-    return (
-      this.status === SubscriptionStatus.ACTIVE &&
-      this.endDate.getTime() > new Date().getTime()
-    );
-  }
-
-  public isExpiringSoon(daysThreshold: number = 3): boolean {
-    const now = new Date();
-    const thresholdDate = new Date();
-    thresholdDate.setDate(now.getDate() + daysThreshold);
-
-    return (
-      this.status === SubscriptionStatus.ACTIVE &&
-      this.endDate.getTime() <= thresholdDate.getTime() &&
-      this.endDate.getTime() > now.getTime()
-    );
+  public cancel(): void {
+    this.status = SubscriptionStatus.CANCELLED;
+    this.updatedAt = new Date();
   }
 
   public updateRequestLimit(newLimit: number): void {
-    if (this.plan) {
-      this.plan.updateRequestLimit(newLimit);
-      this.updatedAt = new Date();
+    if (this.metadata) {
+      this.metadata.requestLimit = newLimit;
+    } else {
+      this.metadata = { requestLimit: newLimit };
     }
+    this.updatedAt = new Date();
+  }
+
+  public incrementDailyRequestCount(): void {
+    this.dailyRequestCount += 1;
+    this.updatedAt = new Date();
+  }
+
+  public resetDailyRequestCount(): void {
+    this.dailyRequestCount = 0;
+    this.updatedAt = new Date();
   }
 }

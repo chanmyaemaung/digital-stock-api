@@ -226,3 +226,74 @@ Authorization: Bearer <token>
   }
 }
 ```
+
+## Subscription System
+
+The system provides comprehensive subscription management with the following features:
+
+### Trial Period
+
+- All new subscriptions start with a 3-day trial period
+- Full access to plan features during trial
+- Automatic transition to regular subscription after trial
+
+### Plan Management
+
+- Multiple subscription tiers (Basic/Premium/Business)
+- Flexible duration (30-365 days)
+- Plan upgrade/downgrade with prorated pricing
+- Automatic expiration handling
+
+### Request Limits
+
+- Daily request limits based on plan tier
+- Automatic limit reset at midnight
+- Request tracking and notifications
+- Limit exceeded notifications
+
+### API Endpoints
+
+#### Create Subscription
+
+```bash
+POST /api/subscriptions
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "planId": "uuid",
+  "duration": 30  // Optional, defaults to 30 days
+}
+```
+
+#### Get Active Subscription
+
+```bash
+GET /api/subscriptions/active
+Authorization: Bearer <token>
+```
+
+#### Upgrade Plan
+
+```bash
+PUT /api/subscriptions/upgrade/:planId
+Authorization: Bearer <token>
+```
+
+### Cron Jobs
+
+The system includes automated tasks:
+
+- Daily request limit reset at midnight
+- Subscription expiration checks
+- Expiring subscription notifications (3 days before)
+
+### Request Limit Implementation
+
+```typescript
+// Check and increment request count
+const canProceed = await subscriptionService.incrementRequestCount(userId);
+if (!canProceed) {
+  throw new Error('Daily request limit exceeded');
+}
+```

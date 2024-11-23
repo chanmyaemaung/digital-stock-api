@@ -1,0 +1,28 @@
+src/
+├── core/                   # Core domain logic
+│   ├── domain/            # Domain entities, value objects
+│   ├── interfaces/        # Interfaces/ports
+│   └── services/          # Domain services
+│
+├── infrastructure/        # External concerns implementation
+│   ├── config/           # Configuration
+│   ├── database/         # Database setup & migrations
+│   ├── logging/          # Logging setup
+│   └── persistence/      # Repository implementations
+│
+├── modules/              # Feature modules
+│   ├── auth/            # Authentication module
+│   ├── user/            # User module  
+│   ├── subscription/    # Subscription module
+│   ├── wallet/          # Wallet module
+│   ├── payment/         # Payment module
+│   └── notification/    # Notification module
+│
+├── shared/              # Shared code
+│   ├── decorators/     
+│   ├── filters/
+│   ├── guards/
+│   ├── interceptors/
+│   └── utils/
+│
+└── app.module.ts        # Root module 

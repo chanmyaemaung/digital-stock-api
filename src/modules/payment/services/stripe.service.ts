@@ -21,6 +21,7 @@ export class StripeService {
             currency: 'usd',
             product_data: {
               name: 'Wallet Top-up',
+              description: 'Add funds to your wallet',
             },
             unit_amount: amount * 100, // Convert to cents
           },
@@ -29,8 +30,8 @@ export class StripeService {
       ],
       mode: 'payment',
       metadata,
-      success_url: `${process.env.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
+      success_url: `${this.configService.get('FRONTEND_URL')}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${this.configService.get('FRONTEND_URL')}/payment/cancel`,
     });
 
     return session.id;
@@ -48,7 +49,18 @@ export class StripeService {
       );
       return true;
     } catch (err) {
+      console.error('Webhook signature verification failed:', err);
       return false;
     }
+  }
+
+  async retrievePaymentIntent(paymentIntentId: string) {
+    return this.stripe.paymentIntents.retrieve(paymentIntentId);
+  }
+
+  async refundPayment(paymentIntentId: string) {
+    return this.stripe.refunds.create({
+      payment_intent: paymentIntentId,
+    });
   }
 }

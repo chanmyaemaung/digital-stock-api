@@ -176,3 +176,53 @@ src/
 │
 └── app.module.ts               # Root module
 ```
+
+## Payment System
+
+The system supports two types of payments:
+
+### Stripe Payments
+
+- Automated payment processing using Stripe
+- Secure checkout session
+- Instant wallet credit upon successful payment
+- Real-time webhooks for payment status updates
+
+### Manual Payments
+
+- Bank transfer or other manual payment methods
+- Reference number tracking
+- Admin approval workflow
+- Notifications for both users and admins
+
+### API Endpoints
+
+#### Create Stripe Payment
+
+```bash
+POST /api/payments
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "amount": 100,
+  "type": "stripe"
+}
+```
+
+#### Create Manual Payment
+
+```bash
+POST /api/payments/manual
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "amount": 100,
+  "reference": "BANK-123",
+  "metadata": {
+    "bankName": "KBZ",
+    "accountNumber": "123456"
+  }
+}
+```

@@ -1,65 +1,67 @@
+import { Role } from '@app/core/domain/enums/role.enum';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import {
-  Controller,
-  Post,
   Body,
-  Param,
+  Controller,
+  Get,
   Headers,
+  Param,
+  Post,
+  Request,
   UseGuards,
 } from '@nestjs/common';
-import { PaymentService } from './payment.service';
-import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
-import { RolesGuard } from '@shared/guards/roles.guard';
-import { Roles } from '@shared/decorators/roles.decorator';
-import { Role } from '@app/core/domain/enums/role.enum';
 import {
-  ApiTags,
+  ApiBearerAuth,
+  ApiHeader,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
-  ApiBody,
-  ApiParam,
-  ApiHeader,
+  ApiTags,
 } from '@nestjs/swagger';
+import { Roles } from '@shared/decorators/roles.decorator';
+import { RolesGuard } from '@shared/guards/roles.guard';
+import { CreatePaymentDto } from './dto/create-payment.dto';
+import { ManualPaymentDto } from './dto/manual-payment.dto';
+import { PaymentService } from './payment.service';
 
-@ApiTags('payments')
+@ApiTags('Payments')
 @ApiBearerAuth()
 @Controller('payments')
 @UseGuards(JwtAuthGuard)
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  @Post('stripe/initiate')
-  @ApiOperation({ summary: 'Initiate a Stripe payment' })
+  @Post()
+  @ApiOperation({
+    summary: 'Initiate a payment',
+    description:
+      'Create a new payment using either Stripe or manual payment method',
+  })
   @ApiResponse({
     status: 201,
-    description: 'Payment session created successfully.',
-  })
-  @ApiResponse({ status: 400, description: 'Bad request.' })
-  @ApiBody({
+    description: 'Payment initiated successfully',
     schema: {
-      type: 'object',
-      properties: {
-        userId: { type: 'string', format: 'uuid' },
-        amount: { type: 'number', minimum: 0 },
+      example: {
+        sessionId: 'cs_test_xxx', // For Stripe payments
+        paymentId: 'uuid',
       },
     },
   })
-  async initiateStripePayment(
-    @Body('userId') userId: string,
-    @Body('amount') amount: number,
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  async initiatePayment(
+    @Request() req,
+    @Body() createPaymentDto: CreatePaymentDto,
   ) {
-    return this.paymentService.initiateStripePayment(userId, amount);
+    return this.paymentService.initiatePayment(req.user.id, createPaymentDto);
   }
 
-  @Post('stripe/webhook')
-  @ApiOperation({ summary: 'Handle Stripe webhook events' })
-  @ApiResponse({ status: 200, description: 'Webhook handled successfully.' })
-  @ApiResponse({ status: 400, description: 'Invalid webhook signature.' })
+  @Post('webhook')
+  @ApiOperation({ summary: 'Handle Stripe webhook' })
+  @ApiResponse({ status: 200, description: 'Webhook handled successfully' })
   @ApiHeader({
     name: 'stripe-signature',
     description: 'Stripe webhook signature',
   })
-  async handleStripeWebhook(
+  async handleWebhook(
     @Body() payload: Buffer,
     @Headers('stripe-signature') signature: string,
   ) {
@@ -67,33 +69,46 @@ export class PaymentController {
   }
 
   @Post('manual')
-  @ApiOperation({ summary: 'Create a manual payment request' })
-  @ApiResponse({ status: 201, description: 'Manual payment request created.' })
-  @ApiBody({
+  @ApiOperation({
+    summary: 'Create manual payment request',
+    description: 'Create a manual payment request that requires admin approval',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Manual payment created successfully',
     schema: {
-      type: 'object',
-      properties: {
-        userId: { type: 'string', format: 'uuid' },
-        amount: { type: 'number', minimum: 0 },
+      example: {
+        id: 'uuid',
+        amount: 100,
+        status: 'pending',
+        reference: 'BANK-123',
+        createdAt: '2024-03-15T12:00:00Z',
       },
     },
   })
   async createManualPayment(
-    @Body('userId') userId: string,
-    @Body('amount') amount: number,
+    @Request() req,
+    @Body() manualPaymentDto: ManualPaymentDto,
   ) {
-    return this.paymentService.createManualPayment(userId, amount);
+    return this.paymentService.createManualPayment(
+      req.user.id,
+      manualPaymentDto,
+    );
   }
 
-  @Post('manual/:id/approve')
+  @Get('manual/:id/status')
+  @ApiOperation({ summary: 'Get manual payment status' })
+  @ApiResponse({ status: 200, description: 'Returns payment status' })
+  async getManualPaymentStatus(@Param('id') id: string) {
+    return this.paymentService.getManualPaymentStatus(id);
+  }
+
+  @Get('manual/pending')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Approve a manual payment' })
-  @ApiResponse({ status: 200, description: 'Payment approved successfully.' })
-  @ApiResponse({ status: 404, description: 'Payment not found.' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin only.' })
-  @ApiParam({ name: 'id', description: 'Payment ID' })
-  async approveManualPayment(@Param('id') id: string) {
-    return this.paymentService.approveManualPayment(id);
+  @ApiOperation({ summary: 'List pending manual payments' })
+  @ApiResponse({ status: 200, description: 'Returns pending payments' })
+  async listPendingManualPayments() {
+    return this.paymentService.listPendingManualPayments();
   }
 }

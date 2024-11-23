@@ -4,6 +4,7 @@ export enum NotificationType {
   PAYMENT_RECEIVED = 'payment_received',
   PAYMENT_FAILED = 'payment_failed',
   PAYMENT_APPROVED = 'payment_approved',
+  PAYMENT_SUCCESSFUL = 'payment_successful',
   SUBSCRIPTION_CREATED = 'subscription_created',
   SUBSCRIPTION_EXPIRED = 'subscription_expired',
   SUBSCRIPTION_EXPIRING = 'subscription_expiring',

@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RateLimitingModule } from './modules/rate-limiting/rate-limiting.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { UserModule } from './modules/user/user.module';
-import { SubscriptionModule } from './modules/subscription/subscription.module';
-import { dataSourceOptions } from './infrastructure/database/data-source';
 import redisConfig from './infrastructure/config/redis.config';
+import { dataSourceOptions } from './infrastructure/database/data-source';
+import { AuthModule } from './modules/auth/auth.module';
+import { PaymentModule } from './modules/payment/payment.module';
+import { RateLimitingModule } from './modules/rate-limiting/rate-limiting.module';
+import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import redisConfig from './infrastructure/config/redis.config';
     AuthModule,
     UserModule,
     SubscriptionModule,
+    PaymentModule,
   ],
 })
 export class AppModule {}
